@@ -1,0 +1,19 @@
+{
+  "name": "mizu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mizu: pH and alkalinity water tester app",
+  "scripts": {
+    "add:android": "cap add android",
+    "sync": "cap sync",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor-community/bluetooth-le": "^7.0.0",
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/core": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "appId": "com.mizu.watertester",
+  "appName": "Mizu",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#0b6e6e"
+  }
+}

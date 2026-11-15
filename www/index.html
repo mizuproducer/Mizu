@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6e6e">
+<title>Mizu</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column; live reading on top, advice under it, connection + history below. */
+:root {
+  --bg: #eef5f4;
+  --surface: #ffffff;
+  --ink: #0f2a2c;
+  --muted: #5a7476;
+  --line: #d3e3e1;
+  --accent: #0b6e6e;
+  --accent-ink: #ffffff;
+  --band: #cfeee6;
+  --good: #1f8a4c;
+  --warn: #b7791f;
+  --bad: #c2412d;
+  --good-bg: #e2f4e9;
+  --warn-bg: #fbf0dc;
+  --bad-bg: #fbe5e0;
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1718; --surface: #112325; --ink: #e3f1f0; --muted: #8fabad; --line: #23393b;
+    --accent: #3cc2b4; --accent-ink: #062022; --band: #17433f;
+    --good: #5fd08f; --warn: #e9b35a; --bad: #f07a63;
+    --good-bg: #133324; --warn-bg: #3a2c12; --bad-bg: #3d1c16;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1718; --surface: #112325; --ink: #e3f1f0; --muted: #8fabad; --line: #23393b;
+  --accent: #3cc2b4; --accent-ink: #062022; --band: #17433f;
+  --good: #5fd08f; --warn: #e9b35a; --bad: #f07a63;
+  --good-bg: #133324; --warn-bg: #3a2c12; --bad-bg: #3d1c16;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 560px; margin: 0 auto;
+  padding-block: 12px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 16px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand h1 { font: 700 22px/1 var(--font-display); margin: 0; letter-spacing: -0.02em; }
+.brand small { display: block; color: var(--muted); font-size: 12px; margin-top: 3px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; background: var(--surface); border: 1px solid var(--line); white-space: nowrap;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.chip.live .dot { background: var(--good); box-shadow: 0 0 0 3px var(--good-bg); }
+.chip.wait .dot { background: var(--warn); }
+section { display: grid; gap: 12px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+h2 { font: 600 13px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row > * { min-width: 0; }
+
+/* Reading hero */
+.hero { background: var(--accent); color: var(--accent-ink); border-radius: 18px; padding: 18px; display: grid; gap: 14px; }
+.hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.verdict { font: 700 24px/1.15 var(--font-display); margin: 0; text-wrap: balance; }
+.hero .sub { opacity: 0.85; font-size: 13px; }
+.example-tag { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.18); }
+:root[data-theme="dark"] .example-tag { background: rgba(0,0,0,0.15); }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric { background: var(--surface); color: var(--ink); border-radius: 12px; padding: 12px; display: grid; gap: 8px; min-width: 0; }
+.metric .label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.metric .value { font: 700 34px/1 var(--font-display); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.metric .value small { font: 500 13px var(--font-body); color: var(--muted); margin-left: 4px; letter-spacing: 0; }
+.pill { justify-self: start; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.pill.good { color: var(--good); background: var(--good-bg); }
+.pill.warn { color: var(--warn); background: var(--warn-bg); }
+.pill.bad { color: var(--bad); background: var(--bad-bg); }
+.scale { position: relative; height: 10px; border-radius: 6px; background: var(--line); }
+.scale .band { position: absolute; top: 0; bottom: 0; background: var(--band); border-radius: 6px; outline: 1px solid var(--good); }
+.scale .mark { position: absolute; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink); transition: left 0.5s ease; }
+.scale-labels { display: flex; justify-content: space-between; font: 500 10px var(--font-data); color: var(--muted); }
+.meta { font: 500 11px var(--font-data); opacity: 0.85; }
+
+/* Advice */
+.tips { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.tip { border: 1px solid var(--line); border-left: 4px solid var(--good); border-radius: 10px; padding: 12px 14px; background: var(--surface); display: grid; gap: 4px; }
+.tip.warn { border-left-color: var(--warn); }
+.tip.bad { border-left-color: var(--bad); }
+.tip strong { font: 600 15px/1.3 var(--font-display); }
+.tip p { margin: 0; color: var(--muted); font-size: 14px; }
+.tip .dose { font: 500 13px var(--font-data); color: var(--ink); background: var(--bg); border-radius: 6px; padding: 6px 8px; margin-top: 4px; }
+.step { font: 500 11px var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Controls */
+label.f { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); flex: 1 1 140px; }
+input, select {
+  font: 500 15px var(--font-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; min-width: 0;
+}
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button {
+  font: 600 15px var(--font-body); border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+}
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--bg); padding: 4px; border-radius: 12px; }
+.tabs button { background: transparent; border: 0; color: var(--muted); padding: 9px 6px; font-size: 13px; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.note.err { color: var(--bad); }
+.range-row { font: 500 12px var(--font-data); color: var(--muted); }
+details summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details[open] summary { margin-bottom: 10px; }
+
+/* History */
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.chart { min-width: 0; }
+.chart svg { width: 100%; height: 90px; display: block; }
+.chart .cap { font-size: 12px; font-weight: 600; color: var(--muted); }
+.log { font: 500 12px var(--font-data); display: grid; gap: 2px; max-height: 180px; overflow-y: auto; }
+.log div { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+@media (max-width: 380px) { .metric .value { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) { .scale .mark { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+        <path d="M17 3 C17 3 6 15 6 21.5 A11 11 0 0 0 28 21.5 C28 15 17 3 17 3Z" fill="var(--accent)"/>
+        <path d="M11 22 q3 -3 6 0 t6 0" stroke="var(--accent-ink)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div><h1>Mizu</h1><small>pH &amp; alkalinity monitor</small></div>
+    </div>
+    <span class="chip" id="statusChip"><span class="dot"></span><span id="statusText">Not connected</span></span>
+  </header>
+
+  <!-- Live reading -->
+  <div class="hero" aria-live="polite">
+    <div class="hero-top">
+      <div>
+        <p class="verdict" id="verdict">Balanced</p>
+        <div class="sub" id="verdictSub"></div>
+      </div>
+      <span class="example-tag" id="exampleTag">Example reading</span>
+    </div>
+    <div class="metrics">
+      <div class="metric">
+        <span class="label">pH</span>
+        <span class="value" id="phVal">7.5</span>
+        <span class="pill good" id="phPill">In range</span>
+        <div class="scale" id="phScale"><div class="band"></div><div class="mark"></div></div>
+        <div class="scale-labels" id="phScaleLabels"></div>
+      </div>
+      <div class="metric">
+        <span class="label">Alkalinity</span>
+        <span class="value" id="alkVal">100<small>ppm</small></span>
+        <span class="pill good" id="alkPill">In range</span>
+        <div class="scale" id="alkScale"><div class="band"></div><div class="mark"></div></div>
+        <div class="scale-labels" id="alkScaleLabels"></div>
+      </div>
+    </div>
+    <div class="meta" id="meta">—</div>
+  </div>
+
+  <!-- Water profile -->
+  <section class="panel">
+    <h2>Your water</h2>
+    <div class="row">
+      <label class="f" for="profile" style="flex:1 1 100%">Water type
+        <select id="profile">
+          <option value="pool">Swimming pool</option>
+          <option value="spa">Hot tub / spa</option>
+          <option value="fresh">Freshwater aquarium</option>
+          <option value="reef">Saltwater / reef aquarium</option>
+          <option value="drinking">Drinking / well water</option>
+        </select>
+      </label>
+      <label class="f" for="volume" id="volWrap">Volume
+        <div class="row" style="flex-wrap:nowrap;gap:6px">
+          <input id="volume" type="number" inputmode="decimal" min="1" step="any" value="15000">
+          <select id="volUnit" style="flex:0 0 78px;width:78px"><option value="gal">gal</option><option value="L">L</option></select>
+        </div>
+      </label>
+    </div>
+    <div class="range-row" id="targets"></div>
+  </section>
+
+  <!-- Suggestions -->
+  <section>
+    <h2>What to do</h2>
+    <ul class="tips" id="tips"></ul>
+    <p class="note">Doses are estimates. Add about half, circulate, retest, then add the rest. Always add chemicals to water, never water to chemicals.</p>
+  </section>
+
+  <!-- Connection -->
+  <section class="panel">
+    <h2>Connect your tester</h2>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="ble" id="tab-ble">Bluetooth</button>
+      <button role="tab" aria-selected="false" data-tab="remote" id="tab-remote">Remote</button>
+      <button role="tab" aria-selected="false" data-tab="demo" id="tab-demo">Demo</button>
+    </div>
+
+    <div data-pane="ble" class="pane" style="display:grid;gap:10px">
+      <p class="note">Pair with a Mizu tester nearby. Bluetooth reaches roughly 10–100 m depending on walls and the tester's antenna. Use <b>Remote</b> for farther away.</p>
+      <div class="row">
+        <button id="bleConnect">Connect over Bluetooth</button>
+        <button class="ghost" id="bleDisconnect" hidden>Disconnect</button>
+      </div>
+      <p class="note err" id="bleNote" hidden></p>
+      <details id="wifiSetup" hidden>
+        <summary>Set up long-distance mode (Wi-Fi)</summary>
+        <div style="display:grid;gap:10px">
+          <p class="note">Send your Wi-Fi details to the tester once. It then sends readings over the internet, so you can check them from anywhere in Remote mode.</p>
+          <label class="f" for="wifiSsid">Wi-Fi name<input id="wifiSsid" autocomplete="off"></label>
+          <label class="f" for="wifiPass">Wi-Fi password<input id="wifiPass" type="password" autocomplete="off"></label>
+          <button id="wifiSend">Send to tester</button>
+          <p class="note" id="wifiNote"></p>
+        </div>
+      </details>
+    </div>
+
+    <div data-pane="remote" class="pane" hidden style="display:grid;gap:10px">
+      <p class="note">See readings from anywhere with internet. The tester must be on Wi-Fi (set it up once over Bluetooth). Its ID is printed on the device and shown after pairing.</p>
+      <label class="f" for="deviceId">Tester ID<input id="deviceId" placeholder="MZ-1A2B3C" autocomplete="off" spellcheck="false"></label>
+      <details>
+        <summary>Server settings</summary>
+        <label class="f" for="broker">MQTT server (WebSocket)<input id="broker" value="wss://broker.hivemq.com:8884/mqtt" spellcheck="false"></label>
+        <p class="note">The default is a free public server, so anyone who knows your tester ID can see its readings. Use your own server for privacy.</p>
+      </details>
+      <div class="row">
+        <button id="remoteConnect">Connect remotely</button>
+        <button class="ghost" id="remoteDisconnect" hidden>Disconnect</button>
+      </div>
+      <p class="note" id="remoteNote"></p>
+    </div>
+
+    <div data-pane="demo" class="pane" hidden style="display:grid;gap:10px">
+      <p class="note">No tester yet? Run a simulated one, or type in numbers from a test strip or drop kit.</p>
+      <div class="row"><button id="demoStart">Start simulated tester</button><button class="ghost" id="demoStop" hidden>Stop</button></div>
+      <div class="row">
+        <label class="f" for="manPh">pH<input id="manPh" type="number" step="0.1" min="0" max="14" inputmode="decimal" placeholder="7.4"></label>
+        <label class="f" for="manAlk">Alkalinity (ppm)<input id="manAlk" type="number" step="1" min="0" inputmode="numeric" placeholder="100"></label>
+      </div>
+      <button class="ghost" id="manSave">Use these numbers</button>
+    </div>
+
+    <button id="measureBtn" class="ghost" hidden>Take a new reading now</button>
+  </section>
+
+  <!-- History -->
+  <section class="panel">
+    <div class="row" style="justify-content:space-between"><h2>History</h2><button class="ghost" id="clearHist" style="padding:6px 10px;font-size:13px">Clear</button></div>
+    <div class="charts">
+      <div class="chart"><div class="cap">pH</div><svg id="phChart" viewBox="0 0 200 90" preserveAspectRatio="none"></svg></div>
+      <div class="chart"><div class="cap" id="alkChartCap">Alkalinity</div><svg id="alkChart" viewBox="0 0 200 90" preserveAspectRatio="none"></svg></div>
+    </div>
+    <div class="log" id="log"></div>
+    <p class="note" id="histEmpty">Readings you take are saved on this phone.</p>
+  </section>
+</div>
+
+<script>
+"use strict";
+/* ---------- Device protocol (must match firmware/mizu_device.ino) ---------- */
+const BLE_SERVICE = "6e7a0001-3c1f-4b8e-9a4e-c1ea7e110001";
+const BLE_READING = "6e7a0002-3c1f-4b8e-9a4e-c1ea7e110001"; // notify: {"id":"MZ-..","ph":7.42,"alk":104,"t":25.1}
+const BLE_COMMAND = "6e7a0003-3c1f-4b8e-9a4e-c1ea7e110001"; // write: "MEASURE" | "WIFI:<ssid>\n<password>"
+const TOPIC = id => `mizu/${id}/reading`;
+const CMD_TOPIC = id => `mizu/${id}/cmd`;
+const MQTT_LIB = "https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js";
+
+const DKH = 17.86; // 1 dKH = 17.86 ppm as CaCO3
+const G_PER_LB = 453.6, G_PER_OZ = 28.35, ML_PER_FLOZ = 29.57, L_PER_GAL = 3.785;
+
+/* ---------- Water profiles ---------- */
+const PROFILES = {
+  pool:     { name: "Swimming pool", ph: [7.2, 7.8], phIdeal: [7.4, 7.6], phTarget: 7.5, alk: [80, 120], alkTarget: 100, alkUnit: "ppm", phScale: [6.4, 8.6], alkScale: [0, 240], vol: 15000, volUnit: "gal" },
+  spa:      { name: "Hot tub", ph: [7.2, 7.8], phIdeal: [7.4, 7.6], phTarget: 7.5, alk: [80, 120], alkTarget: 100, alkUnit: "ppm", phScale: [6.4, 8.6], alkScale: [0, 240], vol: 400, volUnit: "gal" },
+  fresh:    { name: "Freshwater aquarium", ph: [6.5, 7.8], phIdeal: [6.8, 7.4], phTarget: 7.1, alk: [3 * DKH, 8 * DKH], alkTarget: 5 * DKH, alkUnit: "dKH", phScale: [5.5, 9], alkScale: [0, 16 * DKH], vol: 200, volUnit: "L" },
+  reef:     { name: "Reef aquarium", ph: [7.9, 8.4], phIdeal: [8.1, 8.3], phTarget: 8.2, alk: [7 * DKH, 11 * DKH], alkTarget: 8.5 * DKH, alkUnit: "dKH", phScale: [7.4, 8.8], alkScale: [0, 16 * DKH], vol: 300, volUnit: "L" },
+  drinking: { name: "Drinking water", ph: [6.5, 8.5], phIdeal: [6.8, 8.0], phTarget: 7.2, alk: [20, 200], alkTarget: 100, alkUnit: "ppm", phScale: [5, 10], alkScale: [0, 400], vol: 0, volUnit: null }
+};
+
+/* ---------- Storage (safe) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("mizu." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mizu." + k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- State ---------- */
+const $ = id => document.getElementById(id);
+const state = {
+  profile: store.get("profile", "pool"),
+  vol: store.get("vol", null),
+  volUnit: store.get("volUnit", null),
+  reading: null,         // {ph, alk, t?, ts, source}
+  example: true,
+  history: store.get("history", []),
+  lastSaved: 0,
+  conn: null             // "ble" | "remote" | "demo"
+};
+let ble = { device: null, cmd: null };
+let mqttClient = null, demoTimer = null, deviceIdSeen = store.get("deviceId", "");
+
+/* ---------- Helpers ---------- */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const r1 = v => Math.round(v * 10) / 10;
+const prof = () => PROFILES[state.profile];
+const alkShow = (ppm, p = prof()) => p.alkUnit === "dKH" ? r1(ppm / DKH) : Math.round(ppm);
+function litres() { const p = prof(); if (!p.volUnit) return 0; const v = +state.vol || p.vol; return state.volUnit === "gal" ? v * L_PER_GAL : v; }
+function gallons() { return litres() / L_PER_GAL; }
+const metric = () => state.volUnit === "L";
+function mass(g) {
+  if (metric()) return g >= 1000 ? `${r1(g / 1000)} kg` : `${Math.round(g)} g`;
+  const oz = g / G_PER_OZ; return oz >= 16 ? `${r1(oz / 16)} lb` : `${r1(oz)} oz`;
+}
+function liquid(ml) {
+  if (metric()) return ml >= 1000 ? `${r1(ml / 1000)} L` : `${Math.round(ml)} mL`;
+  const fl = ml / ML_PER_FLOZ; return fl >= 128 ? `${r1(fl / 128)} gal` : `${Math.round(fl)} fl oz` + (fl >= 16 ? ` (${r1(fl / 8)} cups)` : "");
+}
+const tsp = g => r1(g / 4.8); // baking soda ≈ 4.8 g per level teaspoon
+
+function status(v, range) { return v < range[0] ? "low" : v > range[1] ? "high" : "ok"; }
+
+/* ---------- Advice engine ---------- */
+function advise(ph, alk) {
+  const p = prof(), tips = [];
+  const phS = status(ph, p.ph), alkS = status(alk, p.alk);
+  const add = (level, title, body, dose, step) => tips.push({ level, title, body, dose, step });
+
+  if (state.profile === "pool" || state.profile === "spa") {
+    const k = gallons() / 10000;
+    const buffer = clamp(alk / 100, 0.6, 1.6); // higher alkalinity resists pH change
+    const fixingAlk = alkS !== "ok";
+    if (alkS === "low") {
+      const d = p.alkTarget - alk, g = d / 10 * 1.4 * G_PER_LB * k;
+      add(alk < 60 ? "bad" : "warn", "Raise alkalinity first",
+        "Low alkalinity lets pH swing and can etch plaster and corrode metal. Broadcast sodium bicarbonate (plain baking soda) over the deep end with the pump running.",
+        `Add ${mass(g)} sodium bicarbonate → about +${Math.round(d)} ppm`, "Step 1");
+    } else if (alkS === "high") {
+      const d = alk - p.alkTarget, ml = d / 10 * 25.6 * ML_PER_FLOZ * k;
+      add(alk > 160 ? "bad" : "warn", "Lower alkalinity first",
+        "High alkalinity locks pH high and causes cloudy water and scale. With the pump off, pour muriatic acid slowly into one spot in the deep end. Wait an hour, run the pump, then aerate (jets, fountains) to bring pH back up. Split into 2–3 doses a day apart.",
+        `Total ${liquid(ml)} muriatic acid (31.45%) → about −${Math.round(d)} ppm`, "Step 1");
+    } else {
+      add("good", "Alkalinity is good", `${Math.round(alk)} ppm is within ${p.alk[0]}–${p.alk[1]} ppm, so pH will hold steady.`);
+    }
+    const step = fixingAlk ? "Step 2 · retest pH 6 h after step 1" : undefined;
+    if (phS === "low") {
+      const d = p.phTarget - ph, g = d / 0.2 * 6 * G_PER_OZ * k * buffer;
+      add(ph < 7.0 ? "bad" : "warn", "Raise pH",
+        "Low pH stings eyes, wastes chlorine and corrodes equipment. Pre-dissolve soda ash (sodium carbonate) in a bucket of pool water and pour it in front of a return jet.",
+        `Add ${mass(g)} soda ash → about pH ${p.phTarget}`, step);
+    } else if (phS === "high") {
+      const d = ph - p.phTarget, ml = d / 0.2 * 12 * ML_PER_FLOZ * k * buffer;
+      add(ph > 8.0 ? "bad" : "warn", "Lower pH",
+        "High pH makes chlorine weak and causes scale and cloudiness. Add muriatic acid slowly in front of a return jet with the pump running, or use dry acid (sodium bisulfate).",
+        `Add ${liquid(ml)} muriatic acid (31.45%) → about pH ${p.phTarget}`, step);
+    } else if (ph < p.phIdeal[0] || ph > p.phIdeal[1]) {
+      add("good", "pH is acceptable", `pH ${ph} is in range. ${p.phIdeal[0]}–${p.phIdeal[1]} is the comfort sweet spot; no action needed.`);
+    } else {
+      add("good", "pH is ideal", `pH ${ph} is right in the ${p.phIdeal[0]}–${p.phIdeal[1]} sweet spot.`);
+    }
+    if (state.profile === "spa" && tips.some(t => t.dose)) add("warn", "Hot tubs react fast", "Small volume means small mistakes matter. Add a quarter of the dose, run the jets 20 minutes, and retest.");
+  }
+
+  else if (state.profile === "fresh" || state.profile === "reef") {
+    const L = litres(), dk = alk / DKH, reef = state.profile === "reef";
+    const targetDk = p.alkTarget / DKH, perDay = reef ? 1.4 : 1;
+    if (alkS === "low") {
+      const d = targetDk - dk;
+      const useAsh = reef && phS === "low";
+      const gPerDkh = (useAsh ? 1.89 : 3) * L / 100; // grams per 1 dKH rise
+      add(dk < (reef ? 6 : 2) ? "bad" : "warn", useAsh ? "Raise alkalinity and pH (soda ash)" : "Raise alkalinity (KH)",
+        `Dissolve ${useAsh ? "soda ash (baked baking soda)" : "baking soda"} in a cup of tank water and add it slowly to a high-flow area. Raise no more than ${perDay} dKH per day so ${reef ? "corals" : "fish"} aren't stressed.`,
+        `Total ${mass(d * gPerDkh)}${useAsh ? "" : ` (≈ ${tsp(d * gPerDkh)} tsp)`} for +${r1(d)} dKH · max ${mass(perDay * gPerDkh)} per day`);
+    } else if (alkS === "high") {
+      if (reef) add(dk > 12 ? "bad" : "warn", "Lower alkalinity", "Stop or reduce alkalinity dosing (two-part, kalkwasser) and let corals use it up over a few days. High alkalinity with low nutrients can burn coral tips.");
+      else {
+        const f = clamp((alk - p.alkTarget) / alk, 0.1, 0.25);
+        add("warn", "Lower alkalinity (KH)", "Do water changes using RO or distilled water instead of tap water. Repeat every few days until KH is in range.",
+          `Change about ${Math.round(f * 100)}% of the water (${Math.round(L * f)} L) with RO water`);
+      }
+    } else add("good", "Alkalinity is good", `${r1(dk)} dKH (${Math.round(alk)} ppm) is within ${r1(p.alk[0] / DKH)}–${r1(p.alk[1] / DKH)} dKH.`);
+
+    if (phS === "low") {
+      if (alkS === "low" && !reef) add("warn", "Raise pH", "Low pH here is mostly caused by low KH. Fixing KH above will lift pH too. For lasting buffering, add crushed coral or aragonite to the filter.");
+      else if (reef) add(ph < 7.8 ? "bad" : "warn", "Raise pH", "Reef pH usually drops from too much CO₂ indoors. Increase surface agitation, run the skimmer air intake from outside or through a CO₂ scrubber, and light the refugium at night.");
+      else add("warn", "Raise pH", "Increase surface agitation to drive off CO₂, and add crushed coral to the filter. Change pH by no more than 0.2 per day.");
+    } else if (phS === "high") {
+      if (reef) add("warn", "Lower pH", "Reduce kalkwasser or soda ash dosing. pH above 8.4 can make calcium precipitate.");
+      else add("warn", "Lower pH", "Add driftwood or Indian almond leaves, and mix RO water into water changes. Avoid pH-down chemicals; change pH by no more than 0.2 per day.");
+    } else add("good", "pH is good", `pH ${ph} suits a ${reef ? "reef tank" : "community freshwater tank"}.`);
+  }
+
+  else { // drinking
+    if (phS === "low") add(ph < 6 ? "bad" : "warn", "Water is acidic",
+      "Acidic water can dissolve lead and copper from pipes and leaves blue-green stains. Install a calcite (acid neutralizing) filter, and have a lab test for lead and copper.");
+    else if (phS === "high") add("warn", "Water is alkaline", "Above 8.5 water can taste bitter and leave scale on fixtures. It is usually not a health risk. A reverse-osmosis filter at the kitchen tap reduces it.");
+    else add("good", "pH is normal", `pH ${ph} is within the 6.5–8.5 drinking water guideline.`);
+    if (alkS === "low") add("warn", "Low alkalinity", "Under 20 mg/L water can't resist acid and tends to corrode pipes. A calcite neutralizer raises both alkalinity and pH.");
+    else if (alkS === "high") add("warn", "High alkalinity", "Over 200 mg/L often comes with hard water and causes scale in kettles and heaters. A reverse-osmosis filter reduces it for drinking.");
+    else add("good", "Alkalinity is normal", `${Math.round(alk)} mg/L is a healthy, stable level.`);
+    add("good", "Never dose drinking water", "Don't add pool or aquarium chemicals to drinking water. Use certified filters, and get a full lab test once a year for wells.");
+  }
+  return tips;
+}
+
+/* ---------- Rendering ---------- */
+function setScale(el, labelsEl, v, scale, band, fmt) {
+  const pct = x => ((clamp(x, scale[0], scale[1]) - scale[0]) / (scale[1] - scale[0])) * 100;
+  const b = el.querySelector(".band"), m = el.querySelector(".mark");
+  b.style.left = pct(band[0]) + "%"; b.style.width = (pct(band[1]) - pct(band[0])) + "%";
+  m.style.left = pct(v) + "%";
+  labelsEl.innerHTML = `<span>${fmt(scale[0])}</span><span>${fmt(band[0])}–${fmt(band[1])}</span><span>${fmt(scale[1])}</span>`;
+}
+function pill(el, s, extreme) {
+  el.className = "pill " + (s === "ok" ? "good" : extreme ? "bad" : "warn");
+  el.textContent = s === "ok" ? "In range" : s === "low" ? "Too low" : "Too high";
+}
+function render() {
+  const p = prof(), rd = state.reading;
+  $("volWrap").hidden = !p.volUnit;
+  $("targets").textContent = `Target · pH ${p.ph[0]}–${p.ph[1]} · alkalinity ${alkShow(p.alk[0])}–${alkShow(p.alk[1])} ${p.alkUnit}`;
+  $("alkChartCap").textContent = `Alkalinity (${p.alkUnit})`;
+  if (!rd) return;
+  const ph = r1(rd.ph), alk = rd.alk;
+  const phS = status(ph, p.ph), alkS = status(alk, p.alk);
+  $("phVal").textContent = ph.toFixed(1);
+  $("alkVal").innerHTML = `${alkShow(alk)}<small>${p.alkUnit}</small>`;
+  const phSpan = p.ph[1] - p.ph[0], alkSpan = p.alk[1] - p.alk[0];
+  const phExtreme = ph < p.ph[0] - phSpan * 0.5 || ph > p.ph[1] + phSpan * 0.5;
+  const alkExtreme = alk < p.alk[0] - alkSpan * 0.5 || alk > p.alk[1] + alkSpan;
+  pill($("phPill"), phS, phExtreme); pill($("alkPill"), alkS, alkExtreme);
+  setScale($("phScale"), $("phScaleLabels"), ph, p.phScale, p.ph, v => r1(v));
+  setScale($("alkScale"), $("alkScaleLabels"), alk, p.alkScale, p.alk, v => alkShow(v));
+
+  const off = (phS !== "ok") + (alkS !== "ok");
+  $("verdict").textContent = off === 0 ? "Balanced" : (phExtreme || alkExtreme) ? "Needs attention now" : off === 2 ? "Two things to adjust" : "One thing to adjust";
+  $("verdictSub").textContent = p.name + (rd.t != null ? ` · ${r1(rd.t)} °C` : "");
+  $("exampleTag").hidden = !state.example;
+  const when = new Date(rd.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  $("meta").textContent = state.example ? "Connect your tester to see your own water." : `${rd.source} · updated ${when}`;
+
+  $("tips").innerHTML = advise(ph, alk).map(t => `
+    <li class="tip ${t.level}">
+      ${t.step ? `<span class="step">${t.step}</span>` : ""}
+      <strong>${t.title}</strong>
+      <p>${t.body}</p>
+      ${t.dose ? `<div class="dose">${t.dose}</div>` : ""}
+    </li>`).join("");
+  renderHistory();
+}
+
+function spark(svg, values, band, scale) {
+  if (values.length < 2) { svg.innerHTML = ""; return; }
+  const W = 200, H = 90, lo = Math.min(scale[0], ...values), hi = Math.max(scale[1], ...values);
+  const y = v => H - 6 - ((v - lo) / (hi - lo)) * (H - 12);
+  const x = i => (i / (values.length - 1)) * W;
+  const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const last = values[values.length - 1];
+  svg.innerHTML = `
+    <rect x="0" y="${y(band[1])}" width="${W}" height="${y(band[0]) - y(band[1])}" fill="var(--band)"/>
+    <polygon points="0,${H} ${pts} ${W},${H}" fill="var(--accent)" opacity="0.12"/>
+    <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    <circle cx="${W}" cy="${y(last)}" r="3.5" fill="var(--accent)" vector-effect="non-scaling-stroke"/>`;
+}
+function renderHistory() {
+  const p = prof(), h = state.history.slice(-40);
+  $("histEmpty").hidden = h.length > 0;
+  spark($("phChart"), h.map(e => e.ph), p.ph, p.ph);
+  spark($("alkChart"), h.map(e => alkShow(e.alk)), p.alk.map(v => alkShow(v)), p.alk.map(v => alkShow(v)));
+  $("log").innerHTML = state.history.slice(-30).reverse().map(e =>
+    `<div><span>${new Date(e.ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span><span>pH ${r1(e.ph).toFixed(1)}</span><span>${alkShow(e.alk)} ${p.alkUnit}</span></div>`).join("");
+}
+
+/* ---------- Incoming readings ---------- */
+function onReading(data, source, force = false) {
+  const ph = +data.ph, alk = +data.alk;
+  if (!isFinite(ph) || !isFinite(alk) || ph < 0 || ph > 14 || alk < 0) return;
+  if (data.id && data.id !== deviceIdSeen) { deviceIdSeen = data.id; store.set("deviceId", data.id); $("deviceId").value = data.id; }
+  state.reading = { ph, alk, t: data.t != null ? +data.t : null, ts: Date.now(), source };
+  state.example = false;
+  // Save at most once a minute while streaming, or right away when asked for.
+  if (force || Date.now() - state.lastSaved > 60000) {
+    state.lastSaved = Date.now();
+    state.history.push({ ts: Date.now(), ph, alk });
+    state.history = state.history.slice(-500);
+    store.set("history", state.history);
+  }
+  render();
+}
+function setStatus(text, mode) {
+  $("statusText").textContent = text;
+  $("statusChip").className = "chip" + (mode ? " " + mode : "");
+  $("measureBtn").hidden = !state.conn;
+}
+
+/* ---------- Bluetooth ---------- */
+// In the Android/iOS app, Bluetooth goes through the native plugin
+// (@capacitor-community/bluetooth-le). In a browser it uses Web Bluetooth.
+const NativeBle = (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+  ? window.Capacitor.Plugins.BluetoothLe : null;
+let nativeDev = null, nativeSubs = [];
+const hexToText = h => {
+  const c = String(h || "").replace(/[^0-9a-f]/gi, ""), b = new Uint8Array(c.length >> 1);
+  for (let i = 0; i < b.length; i++) b[i] = parseInt(c.substr(i * 2, 2), 16);
+  return new TextDecoder().decode(b);
+};
+const textToHex = t => [...new TextEncoder().encode(t)].map(x => x.toString(16).padStart(2, "0")).join(" ");
+
+async function bleConnectNative() {
+  const note = $("bleNote"); note.hidden = true;
+  try {
+    stopAll();
+    setStatus("Searching…", "wait");
+    await NativeBle.initialize({ androidNeverForLocation: true });
+    const dev = await NativeBle.requestDevice({ services: [BLE_SERVICE], optionalServices: [BLE_SERVICE] });
+    nativeDev = { deviceId: dev.deviceId, name: dev.name };
+    await bleAttachNative();
+  } catch (e) {
+    setStatus("Not connected");
+    const msg = String(e && e.message || e);
+    if (!/cancel/i.test(msg)) { note.textContent = "Couldn't connect: " + msg + ". Check that Bluetooth is on and Mizu is allowed to use it."; note.hidden = false; }
+  }
+}
+async function bleAttachNative() {
+  const { deviceId } = nativeDev;
+  nativeSubs.forEach(s => s.remove()); nativeSubs = [];
+  nativeSubs.push(await NativeBle.addListener(`disconnected|${deviceId}`, () => {
+    if (state.conn !== "ble") return;
+    setStatus("Reconnecting…", "wait");
+    setTimeout(() => bleAttachNative().catch(() => { state.conn = null; setStatus("Disconnected"); toggleBleButtons(false); }), 1500);
+  }));
+  await NativeBle.connect({ deviceId, timeout: 10000 });
+  nativeSubs.push(await NativeBle.addListener(`notification|${deviceId}|${BLE_SERVICE}|${BLE_READING}`, ev => {
+    try { onReading(JSON.parse(hexToText(ev.value)), "Bluetooth"); } catch {}
+  }));
+  await NativeBle.startNotifications({ deviceId, service: BLE_SERVICE, characteristic: BLE_READING });
+  try {
+    const r = await NativeBle.read({ deviceId, service: BLE_SERVICE, characteristic: BLE_READING });
+    onReading(JSON.parse(hexToText(r.value)), "Bluetooth", true);
+  } catch {}
+  state.conn = "ble";
+  setStatus(nativeDev.name || "Connected", "live");
+  toggleBleButtons(true);
+}
+
+async function bleConnect() {
+  if (NativeBle) return bleConnectNative();
+  const note = $("bleNote"); note.hidden = true;
+  if (!navigator.bluetooth) {
+    note.textContent = "This browser can't use Bluetooth. On Android use Chrome; on iPhone use the Bluefy browser; on a computer use Chrome or Edge. The page must be opened over https.";
+    note.hidden = false; return;
+  }
+  try {
+    stopAll();
+    setStatus("Searching…", "wait");
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [BLE_SERVICE] }, { namePrefix: "Mizu" }],
+      optionalServices: [BLE_SERVICE]
+    });
+    device.addEventListener("gattserverdisconnected", () => {
+      if (state.conn === "ble") { setStatus("Reconnecting…", "wait"); setTimeout(() => bleAttach(device).catch(() => { state.conn = null; setStatus("Disconnected"); toggleBleButtons(false); }), 1500); }
+    });
+    await bleAttach(device);
+  } catch (e) {
+    setStatus("Not connected");
+    if (e.name !== "NotFoundError") { note.textContent = "Couldn't connect: " + e.message; note.hidden = false; }
+  }
+}
+async function bleAttach(device) {
+  const server = await device.gatt.connect();
+  const svc = await server.getPrimaryService(BLE_SERVICE);
+  const reading = await svc.getCharacteristic(BLE_READING);
+  ble = { device, cmd: await svc.getCharacteristic(BLE_COMMAND).catch(() => null) };
+  reading.addEventListener("characteristicvaluechanged", ev => {
+    try { onReading(JSON.parse(new TextDecoder().decode(ev.target.value)), "Bluetooth"); } catch {}
+  });
+  await reading.startNotifications();
+  try { const v = await reading.readValue(); onReading(JSON.parse(new TextDecoder().decode(v)), "Bluetooth", true); } catch {}
+  state.conn = "ble";
+  setStatus(device.name || "Connected", "live");
+  toggleBleButtons(true);
+}
+function toggleBleButtons(on) {
+  $("bleConnect").hidden = on; $("bleDisconnect").hidden = !on; $("wifiSetup").hidden = !on;
+}
+async function bleSend(text) {
+  if (NativeBle && nativeDev) {
+    return NativeBle.write({ deviceId: nativeDev.deviceId, service: BLE_SERVICE, characteristic: BLE_COMMAND, value: textToHex(text) });
+  }
+  if (!ble.cmd) throw new Error("This tester doesn't accept commands.");
+  await ble.cmd.writeValue(new TextEncoder().encode(text));
+}
+
+/* ---------- Remote (MQTT over WebSocket) ---------- */
+function loadMqtt() {
+  if (window.mqtt) return Promise.resolve();
+  return new Promise((ok, fail) => {
+    const s = document.createElement("script"); s.src = MQTT_LIB; s.onload = ok;
+    s.onerror = () => fail(new Error("Couldn't load the connection library. Check your internet connection."));
+    document.head.appendChild(s);
+  });
+}
+async function remoteConnect() {
+  const id = $("deviceId").value.trim().toUpperCase(), note = $("remoteNote");
+  if (!/^MZ-[0-9A-F]{6}$/.test(id)) { note.textContent = "Enter the tester ID, like MZ-1A2B3C."; note.className = "note err"; return; }
+  stopAll();
+  store.set("deviceId", id); store.set("broker", $("broker").value.trim());
+  note.className = "note"; note.textContent = "Connecting…"; setStatus("Connecting…", "wait");
+  try {
+    await loadMqtt();
+    mqttClient = window.mqtt.connect($("broker").value.trim(), { clientId: "mizu-app-" + Math.random().toString(16).slice(2, 10), reconnectPeriod: 4000, connectTimeout: 10000 });
+    mqttClient.on("connect", () => {
+      mqttClient.subscribe(TOPIC(id));
+      state.conn = "remote"; setStatus(id + " · remote", "live");
+      note.textContent = "Connected. Waiting for the tester's latest reading…";
+      $("remoteConnect").hidden = true; $("remoteDisconnect").hidden = false;
+    });
+    mqttClient.on("message", (_t, msg) => {
+      try { onReading(JSON.parse(msg.toString()), "Remote"); note.textContent = "Receiving readings over the internet."; } catch {}
+    });
+    mqttClient.on("reconnect", () => setStatus("Reconnecting…", "wait"));
+    mqttClient.on("error", e => { note.className = "note err"; note.textContent = "Connection error: " + e.message; });
+  } catch (e) { note.className = "note err"; note.textContent = e.message; setStatus("Not connected"); }
+}
+
+/* ---------- Demo / manual ---------- */
+function demoStart() {
+  stopAll();
+  const p = prof();
+  let ph = p.phTarget + (Math.random() - 0.3) * 0.8, alk = p.alkTarget * (0.7 + Math.random() * 0.6);
+  const tick = (force) => {
+    ph = clamp(ph + (Math.random() - 0.5) * 0.06, 0, 14); alk = Math.max(0, alk + (Math.random() - 0.5) * 3);
+    onReading({ id: "MZ-DE0000", ph: r1(ph * 10) / 10, alk: Math.round(alk), t: 24 + Math.random() }, "Simulated tester", force);
+  };
+  tick(true); demoTimer = setInterval(() => tick(false), 3000);
+  state.conn = "demo"; setStatus("Simulated", "live");
+  $("demoStart").hidden = true; $("demoStop").hidden = false;
+}
+function stopAll() {
+  if (demoTimer) clearInterval(demoTimer); demoTimer = null;
+  if (mqttClient) { try { mqttClient.end(true); } catch {} mqttClient = null; }
+  if (ble.device && ble.device.gatt.connected) { state.conn = null; ble.device.gatt.disconnect(); }
+  if (NativeBle && nativeDev) {
+    state.conn = null;
+    nativeSubs.forEach(s => s.remove()); nativeSubs = [];
+    NativeBle.disconnect({ deviceId: nativeDev.deviceId }).catch(() => {});
+    nativeDev = null;
+  }
+  state.conn = null; setStatus("Not connected");
+  toggleBleButtons(false);
+  $("demoStart").hidden = false; $("demoStop").hidden = true;
+  $("remoteConnect").hidden = false; $("remoteDisconnect").hidden = true;
+}
+
+/* ---------- Wire up UI ---------- */
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll(".pane").forEach(p => p.hidden = p.dataset.pane !== b.dataset.tab);
+}));
+$("profile").value = state.profile;
+function applyProfileDefaults(reset) {
+  const p = prof();
+  if (reset || !state.volUnit) { state.vol = p.vol; state.volUnit = p.volUnit || "gal"; }
+  $("volume").value = state.vol || p.vol; $("volUnit").value = state.volUnit;
+}
+$("profile").addEventListener("change", e => { state.profile = e.target.value; store.set("profile", state.profile); applyProfileDefaults(true); store.set("vol", state.vol); store.set("volUnit", state.volUnit); if (state.example) loadExample(); render(); });
+$("volume").addEventListener("input", e => { state.vol = +e.target.value; store.set("vol", state.vol); render(); });
+$("volUnit").addEventListener("change", e => { state.volUnit = e.target.value; store.set("volUnit", state.volUnit); render(); });
+$("bleConnect").addEventListener("click", bleConnect);
+$("bleDisconnect").addEventListener("click", stopAll);
+$("remoteConnect").addEventListener("click", remoteConnect);
+$("remoteDisconnect").addEventListener("click", () => { stopAll(); $("remoteNote").textContent = ""; });
+$("demoStart").addEventListener("click", demoStart);
+$("demoStop").addEventListener("click", stopAll);
+$("manSave").addEventListener("click", () => {
+  const ph = parseFloat($("manPh").value), alk = parseFloat($("manAlk").value);
+  if (!isFinite(ph) || !isFinite(alk)) return;
+  onReading({ ph, alk }, "Entered by hand", true);
+});
+$("measureBtn").addEventListener("click", async () => {
+  try {
+    if (state.conn === "ble") await bleSend("MEASURE");
+    else if (state.conn === "remote" && mqttClient) mqttClient.publish(CMD_TOPIC($("deviceId").value.trim().toUpperCase()), "MEASURE");
+    else if (state.conn === "demo" && state.reading) onReading({ ...state.reading, id: "MZ-DE0000" }, "Simulated tester", true);
+    state.lastSaved = 0; // save the next reading that arrives
+  } catch (e) { $("bleNote").textContent = e.message; $("bleNote").hidden = false; }
+});
+$("wifiSend").addEventListener("click", async () => {
+  const ssid = $("wifiSsid").value.trim(), pass = $("wifiPass").value;
+  if (!ssid) { $("wifiNote").textContent = "Enter your Wi-Fi name."; return; }
+  try {
+    await bleSend(`WIFI:${ssid}\n${pass}`);
+    $("wifiPass").value = "";
+    $("wifiNote").textContent = `Sent. The tester will join "${ssid}" and start sending readings online. Its ID is ${deviceIdSeen || "shown on the device"}.`;
+  } catch (e) { $("wifiNote").textContent = "Couldn't send: " + e.message; }
+});
+$("clearHist").addEventListener("click", () => { state.history = []; store.set("history", []); renderHistory(); });
+
+function loadExample() {
+  const p = prof();
+  // Example: pH a bit high, alkalinity a bit low, so the advice is visible before connecting.
+  state.reading = { ph: r1(p.ph[1] + 0.2), alk: Math.round(p.alk[0] * 0.85), t: null, ts: Date.now(), source: "Example" };
+  state.example = true;
+}
+$("deviceId").value = deviceIdSeen;
+$("broker").value = store.get("broker", $("broker").value);
+applyProfileDefaults(false);
+loadExample();
+render();
+</script>
+</body>
+</html>
